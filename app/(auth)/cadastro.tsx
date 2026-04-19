@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, S
 import { Link, router } from 'expo-router';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
+import { LogoProEstoque } from '../../src/components/LogoProEstoque';
 import { theme } from '../../src/constants/theme';
 
 export default function Cadastro() {
@@ -38,7 +39,7 @@ export default function Cadastro() {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           
           <View style={styles.header}>
-            <Text style={styles.logoText}>ProEstoque</Text>
+            <LogoProEstoque size="md" />
             <Text style={styles.subtitle}>Criar conta</Text>
           </View>
 

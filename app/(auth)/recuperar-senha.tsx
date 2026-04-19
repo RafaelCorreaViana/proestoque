@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
+import { LogoProEstoque } from '../../src/components/LogoProEstoque';
 import { theme } from '../../src/constants/theme';
 
 export default function RecuperarSenha() {
@@ -34,7 +35,7 @@ export default function RecuperarSenha() {
           {!enviado ? (
             <>
               <View style={styles.titleContainer}>
-                <Text style={styles.logoText}>ProEstoque</Text>
+                <LogoProEstoque size="md" />
                 <Text style={styles.title}>Recuperar senha</Text>
                 <Text style={styles.description}>
                   Informe seu e-mail e enviaremos um link de recuperação

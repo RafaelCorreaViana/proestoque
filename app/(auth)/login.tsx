@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView } 
 import { Link, router } from 'expo-router';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
+import { LogoProEstoque } from '../../src/components/LogoProEstoque';
 import { theme } from '../../src/constants/theme';
 
 export default function Login() {
@@ -23,7 +24,7 @@ export default function Login() {
         <View style={styles.container}>
           
           <View style={styles.header}>
-            <Text style={styles.logoText}>ProEstoque</Text>
+            <LogoProEstoque size="lg" />
             <Text style={styles.subtitle}>Bem-vindo de volta</Text>
           </View>
 
