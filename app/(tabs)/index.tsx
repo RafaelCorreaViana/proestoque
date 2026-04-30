@@ -1,36 +1,126 @@
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, RefreshControl } from 'react-native';
 import { theme } from '../../src/constants/theme';
+import { PRODUTOS_MOCK, getStatusEstoque, Produto } from '../../src/data/mockData';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function Home() {
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Olá, João 👋</Text>
-          <Text style={styles.subtitle}>Visão geral do seu estoque</Text>
-        </View>
+  const [refreshing, setRefreshing] = useState(false);
 
-        <View style={styles.cardsContainer}>
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Total em produtos</Text>
-            <Text style={styles.cardValue}>247</Text>
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
+
+  // Cálculos de resumo
+  const totalProdutos = PRODUTOS_MOCK.length;
+  const produtosCriticos = PRODUTOS_MOCK.filter(p => getStatusEstoque(p) !== 'normal');
+  const categoriasUnicas = new Set(PRODUTOS_MOCK.map(p => p.categoriaId)).size;
+  const valorTotalEstoque = PRODUTOS_MOCK.reduce((acc, p) => acc + (p.preco * p.estoque), 0);
+
+  const dataDeHoje = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const cardsResumo = [
+    { id: '1', emoji: '📦', valor: totalProdutos.toString(), label: 'Produtos' },
+    { id: '2', emoji: '⚠️', valor: produtosCriticos.length.toString(), label: 'Alertas', isError: produtosCriticos.length > 0 },
+    { id: '3', emoji: '🗂️', valor: categoriasUnicas.toString(), label: 'Categorias' },
+    { id: '4', emoji: '💰', valor: `R$ ${valorTotalEstoque.toFixed(0)}`, label: 'Em Estoque' },
+  ];
+
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <View style={styles.header}>
+        <Text style={styles.greeting}>Olá, João 👋</Text>
+        <Text style={styles.date}>{dataDeHoje.charAt(0).toUpperCase() + dataDeHoje.slice(1)}</Text>
+      </View>
+
+      <View style={styles.cardsGrid}>
+        {cardsResumo.map(card => (
+          <View key={card.id} style={styles.card}>
+            <Text style={styles.cardEmoji}>{card.emoji}</Text>
+            <Text style={[styles.cardValue, card.isError && styles.errorText]}>{card.valor}</Text>
+            <Text style={styles.cardLabel}>{card.label}</Text>
           </View>
-          
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Categorias</Text>
-            <Text style={styles.cardValue}>12</Text>
-          </View>
-          
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Alertas</Text>
-            <Text style={[styles.cardValue, styles.errorText]}>5</Text>
+        ))}
+      </View>
+
+      {produtosCriticos.length > 0 && (
+        <View style={styles.alertSection}>
+          <Text style={styles.alertTitle}>⚠️ Estoque crítico ({produtosCriticos.length})</Text>
+          <View style={styles.alertCard}>
+            {produtosCriticos.slice(0, 3).map((produto, index) => (
+              <View key={produto.id} style={[styles.alertItem, index > 0 && styles.alertDivider]}>
+                <Text style={styles.alertItemName} numberOfLines={1}>{produto.nome}</Text>
+                <Text style={styles.alertItemValue}>
+                  {produto.estoque}/{produto.estoqueMinimo}
+                </Text>
+              </View>
+            ))}
+            <View style={styles.alertFooter}>
+              <Text style={styles.alertFooterText}>Ver todos →</Text>
+            </View>
           </View>
         </View>
+      )}
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>← preenchido na próxima aula →</Text>
+      <Text style={styles.sectionTitle}>Produtos recentes</Text>
+    </View>
+  );
+
+  const renderProduto = ({ item }: { item: Produto }) => {
+    const status = getStatusEstoque(item);
+    
+    let badgeColor = theme.colors.secondary; // Normal
+    let badgeText = 'Normal';
+    
+    if (status === 'baixo') {
+      badgeColor = '#F59E0B';
+      badgeText = 'Baixo';
+    } else if (status === 'sem_estoque') {
+      badgeColor = theme.colors.error;
+      badgeText = 'Sem estoque';
+    }
+
+    return (
+      <View style={styles.produtoCard}>
+        <View style={styles.produtoInfo}>
+          <Text style={styles.produtoEmoji}>📦</Text>
+          <View style={styles.produtoDetails}>
+            <Text style={styles.produtoName} numberOfLines={1}>{item.nome}</Text>
+            <Text style={styles.produtoQty}>{item.estoque} {item.unidade}</Text>
+          </View>
+        </View>
+        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+          <Text style={styles.badgeText}>{badgeText}</Text>
         </View>
       </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <FlatList
+        data={PRODUTOS_MOCK}
+        keyExtractor={(item) => item.id}
+        renderItem={renderProduto}
+        ListHeaderComponent={renderHeader}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -40,9 +130,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  container: {
-    flex: 1,
+  listContent: {
     padding: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxl,
+  },
+  headerContainer: {
+    marginBottom: theme.spacing.md,
   },
   header: {
     marginBottom: theme.spacing.xl,
@@ -52,45 +145,143 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
-  subtitle: {
+  date: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
   },
-  cardsContainer: {
+  cardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
   },
   card: {
     backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    width: '47%',
     shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    alignItems: 'center',
   },
-  cardLabel: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
+  cardEmoji: {
+    fontSize: 24,
+    marginBottom: theme.spacing.sm,
   },
   cardValue: {
     ...theme.typography.title,
     color: theme.colors.primary,
+    marginBottom: theme.spacing.xs,
   },
   errorText: {
     color: theme.colors.error,
   },
-  footer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerText: {
+  cardLabel: {
     ...theme.typography.caption,
-    color: theme.colors.textLight,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  alertSection: {
+    marginBottom: theme.spacing.xl,
+  },
+  alertTitle: {
+    ...theme.typography.subtitle,
+    color: theme.colors.error,
+    marginBottom: theme.spacing.md,
+  },
+  alertCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.errorLight,
+  },
+  alertItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  alertDivider: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  alertItemName: {
+    ...theme.typography.body,
+    color: theme.colors.text,
+    flex: 1,
+    marginRight: theme.spacing.sm,
+  },
+  alertItemValue: {
+    ...theme.typography.body,
+    color: theme.colors.error,
+    fontWeight: '600',
+  },
+  alertFooter: {
+    alignItems: 'center',
+    paddingTop: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  alertFooterText: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  sectionTitle: {
+    ...theme.typography.subtitle,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  produtoCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.md,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  produtoInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  produtoEmoji: {
+    fontSize: 24,
+    marginRight: theme.spacing.md,
+  },
+  produtoDetails: {
+    flex: 1,
+    marginRight: theme.spacing.sm,
+  },
+  produtoName: {
+    ...theme.typography.body,
+    color: theme.colors.text,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  produtoQty: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+  },
+  badge: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.full,
+  },
+  badgeText: {
+    ...theme.typography.small,
+    color: theme.colors.white,
+    fontWeight: '600',
   },
 });
