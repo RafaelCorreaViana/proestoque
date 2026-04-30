@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, TouchableOpacity, ScrollView, SectionList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/constants/theme';
 import { PRODUTOS_MOCK, CATEGORIAS_MOCK, getStatusEstoque, Produto } from '../../src/data/mockData';
 
+type ViewMode = 'lista' | 'grade' | 'secao';
+
 export default function Produtos() {
   const [busca, setBusca] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('Todos');
+  const [viewMode, setViewMode] = useState<ViewMode>('lista');
 
   const produtosFiltrados = useMemo(() => {
     return PRODUTOS_MOCK.filter((produto) => {
@@ -16,9 +19,28 @@ export default function Produtos() {
     });
   }, [busca, categoriaSelecionada]);
 
-  const renderProduto = ({ item }: { item: Produto }) => {
-    const status = getStatusEstoque(item);
-    
+  const produtosAgrupados = useMemo(() => {
+    const secoes = CATEGORIAS_MOCK.map(cat => ({
+      id: cat.id,
+      title: cat.nome,
+      data: produtosFiltrados.filter(p => p.categoriaId === cat.id)
+    })).filter(secao => secao.data.length > 0);
+    return secoes;
+  }, [produtosFiltrados]);
+
+  const toggleViewMode = () => {
+    if (viewMode === 'lista') setViewMode('grade');
+    else if (viewMode === 'grade') setViewMode('secao');
+    else setViewMode('lista');
+  };
+
+  const getIconForViewMode = () => {
+    if (viewMode === 'lista') return 'list-outline';
+    if (viewMode === 'grade') return 'grid-outline';
+    return 'albums-outline';
+  };
+
+  const renderBadge = (status: string) => {
     let badgeColor = theme.colors.secondary;
     let badgeText = 'Normal';
     
@@ -31,6 +53,15 @@ export default function Produtos() {
     }
 
     return (
+      <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+        <Text style={styles.badgeText}>{badgeText}</Text>
+      </View>
+    );
+  };
+
+  const renderProdutoLista = ({ item }: { item: Produto }) => {
+    const status = getStatusEstoque(item);
+    return (
       <View style={styles.produtoCard}>
         <View style={styles.produtoInfo}>
           <Text style={styles.produtoEmoji}>📦</Text>
@@ -39,8 +70,20 @@ export default function Produtos() {
             <Text style={styles.produtoQty}>{item.estoque} {item.unidade}</Text>
           </View>
         </View>
-        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-          <Text style={styles.badgeText}>{badgeText}</Text>
+        {renderBadge(status)}
+      </View>
+    );
+  };
+
+  const renderProdutoGrade = ({ item }: { item: Produto }) => {
+    const status = getStatusEstoque(item);
+    return (
+      <View style={styles.produtoCardGrade}>
+        <Text style={styles.produtoEmojiGrade}>📦</Text>
+        <Text style={styles.produtoNameGrade} numberOfLines={2}>{item.nome}</Text>
+        <Text style={styles.produtoQty}>{item.estoque} {item.unidade}</Text>
+        <View style={styles.badgeContainerGrade}>
+          {renderBadge(status)}
         </View>
       </View>
     );
@@ -50,6 +93,12 @@ export default function Produtos() {
     <View style={styles.emptyContainer}>
       <Ionicons name="search-outline" size={48} color={theme.colors.textLight} />
       <Text style={styles.emptyText}>Nenhum produto encontrado</Text>
+    </View>
+  );
+
+  const renderSectionHeader = ({ section }: { section: { title: string, data: Produto[] } }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionHeaderText}>{section.title} ({section.data.length})</Text>
     </View>
   );
 
@@ -85,7 +134,12 @@ export default function Produtos() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.title}>Produtos</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Produtos</Text>
+          <TouchableOpacity onPress={toggleViewMode} style={styles.toggleButton}>
+            <Ionicons name={getIconForViewMode()} size={24} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
         
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color={theme.colors.textLight} style={styles.searchIcon} />
@@ -108,13 +162,28 @@ export default function Produtos() {
         {renderChips()}
       </View>
 
-      <FlatList
-        data={produtosFiltrados}
-        keyExtractor={(item) => item.id}
-        renderItem={renderProduto}
-        ListEmptyComponent={renderEmptyComponent}
-        contentContainerStyle={styles.listContent}
-      />
+      {viewMode === 'secao' ? (
+        <SectionList
+          sections={produtosAgrupados}
+          keyExtractor={(item) => item.id}
+          renderItem={renderProdutoLista}
+          renderSectionHeader={renderSectionHeader}
+          ListEmptyComponent={renderEmptyComponent}
+          contentContainerStyle={styles.listContent}
+          stickySectionHeadersEnabled={true}
+        />
+      ) : (
+        <FlatList
+          key={viewMode} // Força re-render ao mudar numColumns
+          data={produtosFiltrados}
+          keyExtractor={(item) => item.id}
+          renderItem={viewMode === 'grade' ? renderProdutoGrade : renderProdutoLista}
+          numColumns={viewMode === 'grade' ? 2 : 1}
+          columnWrapperStyle={viewMode === 'grade' ? styles.row : undefined}
+          ListEmptyComponent={renderEmptyComponent}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -131,10 +200,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
   title: {
     ...theme.typography.title,
     color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+  },
+  toggleButton: {
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.borderRadius.sm,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -182,6 +261,9 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xl,
     flexGrow: 1,
   },
+  row: {
+    justifyContent: 'space-between',
+  },
   produtoCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -196,6 +278,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
+  produtoCardGrade: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.xs,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+    alignItems: 'center',
+  },
   produtoInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -204,6 +300,10 @@ const styles = StyleSheet.create({
   produtoEmoji: {
     fontSize: 24,
     marginRight: theme.spacing.md,
+  },
+  produtoEmojiGrade: {
+    fontSize: 32,
+    marginBottom: theme.spacing.sm,
   },
   produtoDetails: {
     flex: 1,
@@ -215,9 +315,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 2,
   },
+  produtoNameGrade: {
+    ...theme.typography.body,
+    color: theme.colors.text,
+    fontWeight: '500',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
   produtoQty: {
     ...theme.typography.caption,
     color: theme.colors.textSecondary,
+  },
+  badgeContainerGrade: {
+    marginTop: theme.spacing.sm,
   },
   badge: {
     paddingHorizontal: theme.spacing.sm,
@@ -239,5 +349,14 @@ const styles = StyleSheet.create({
     ...theme.typography.body,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.md,
+  },
+  sectionHeader: {
+    backgroundColor: theme.colors.background,
+    paddingVertical: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  sectionHeaderText: {
+    ...theme.typography.subtitle,
+    color: theme.colors.primary,
   },
 });
