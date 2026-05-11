@@ -5,14 +5,19 @@ import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { LogoProEstoque } from '../../src/components/LogoProEstoque';
 import { theme } from '../../src/constants/theme';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 export default function Login() {
+  const { login, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  const handleLogin = () => {
-    // Simulando login
-    router.replace('/(tabs)');
+  const handleLogin = async () => {
+    try {
+      await login(email, senha);
+    } catch (error) {
+      console.warn("Erro no login", error);
+    }
   };
 
   return (
@@ -56,6 +61,7 @@ export default function Login() {
               title="Entrar" 
               onPress={handleLogin} 
               fullWidth 
+              loading={isLoading}
               style={styles.loginButton} 
             />
 

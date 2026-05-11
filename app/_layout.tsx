@@ -1,13 +1,43 @@
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
+import { SplashScreen } from '../src/components/SplashScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+function NavigationGuard() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const estaNoGrupoAuth = segments[0] === '(auth)';
+
+    if (!isAuthenticated && !estaNoGrupoAuth) {
+      router.replace('/(auth)/login');
+    } else if (isAuthenticated && estaNoGrupoAuth) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, isLoading, segments]);
+
+  if (isLoading) {
+    return <SplashScreen />;
+  }
+
+  return null;
+}
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+        <NavigationGuard />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

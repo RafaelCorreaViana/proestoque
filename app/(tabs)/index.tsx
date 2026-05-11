@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, SafeAreaView, FlatList, RefreshControl } from '
 import { theme } from '../../src/constants/theme';
 import { PRODUTOS_MOCK, getStatusEstoque, Produto } from '../../src/data/mockData';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 export default function Home() {
+  const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = () => {
@@ -27,6 +29,10 @@ export default function Home() {
     year: 'numeric',
   });
 
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const primeiroNome = user?.nome?.split(' ')[0] ?? '';
+
   const cardsResumo = [
     { id: '1', emoji: '📦', valor: totalProdutos.toString(), label: 'Produtos' },
     { id: '2', emoji: '⚠️', valor: produtosCriticos.length.toString(), label: 'Alertas', isError: produtosCriticos.length > 0 },
@@ -37,8 +43,15 @@ export default function Home() {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Olá, João 👋</Text>
-        <Text style={styles.date}>{dataDeHoje.charAt(0).toUpperCase() + dataDeHoje.slice(1)}</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.greeting}>{saudacao}, {primeiroNome} 👋</Text>
+            <Text style={styles.date}>{dataDeHoje.charAt(0).toUpperCase() + dataDeHoje.slice(1)}</Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{primeiroNome.charAt(0).toUpperCase()}</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.cardsGrid}>
@@ -139,6 +152,24 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: theme.spacing.xl,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: theme.colors.white,
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   greeting: {
     ...theme.typography.title,
