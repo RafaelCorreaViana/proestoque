@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
+import { ProductsProvider } from '../src/contexts/ProductsContext';
 import { SplashScreen } from '../src/components/SplashScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -32,11 +33,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-        <NavigationGuard />
+        <ProductsProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+          <NavigationGuard />
+        </ProductsProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
