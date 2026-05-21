@@ -1,23 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, TouchableOpacity, ScrollView, SectionList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../src/constants/theme';
-import { PRODUTOS_MOCK, CATEGORIAS_MOCK, getStatusEstoque, Produto } from '../../src/data/mockData';
+import { useRouter } from 'expo-router';
+import { theme } from '../../../src/constants/theme';
+import { CATEGORIAS_MOCK, getStatusEstoque, type Produto } from '../../../src/data/mockData';
+import { useProducts } from '../../../src/contexts/ProductsContext';
 
 type ViewMode = 'lista' | 'grade' | 'secao';
 
 export default function Produtos() {
+  const { produtos } = useProducts();
   const [busca, setBusca] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('Todos');
   const [viewMode, setViewMode] = useState<ViewMode>('lista');
+  const router = useRouter();
 
   const produtosFiltrados = useMemo(() => {
-    return PRODUTOS_MOCK.filter((produto) => {
-      const matchBusca = produto.nome.toLowerCase().includes(busca.toLowerCase());
+    return produtos.filter((produto) => {
+      const matchBusca = produto.nome.toLowerCase().includes(busca.toLowerCase().trim());
       const matchCategoria = categoriaSelecionada === 'Todos' || produto.categoriaId === categoriaSelecionada;
       return matchBusca && matchCategoria;
     });
-  }, [busca, categoriaSelecionada]);
+  }, [produtos, busca, categoriaSelecionada]);
 
   const produtosAgrupados = useMemo(() => {
     const secoes = CATEGORIAS_MOCK.map(cat => ({
@@ -62,30 +66,36 @@ export default function Produtos() {
   const renderProdutoLista = ({ item }: { item: Produto }) => {
     const status = getStatusEstoque(item);
     return (
-      <View style={styles.produtoCard}>
+      <TouchableOpacity 
+        style={styles.produtoCard}
+        onPress={() => router.push(`/produtos/${item.id}`)}
+      >
         <View style={styles.produtoInfo}>
           <Text style={styles.produtoEmoji}>📦</Text>
           <View style={styles.produtoDetails}>
             <Text style={styles.produtoName} numberOfLines={1}>{item.nome}</Text>
-            <Text style={styles.produtoQty}>{item.estoque} {item.unidade}</Text>
+            <Text style={styles.produtoQty}>{item.quantidade} {item.unidade}</Text>
           </View>
         </View>
         {renderBadge(status)}
-      </View>
+      </TouchableOpacity>
     );
   };
 
   const renderProdutoGrade = ({ item }: { item: Produto }) => {
     const status = getStatusEstoque(item);
     return (
-      <View style={styles.produtoCardGrade}>
+      <TouchableOpacity 
+        style={styles.produtoCardGrade}
+        onPress={() => router.push(`/produtos/${item.id}`)}
+      >
         <Text style={styles.produtoEmojiGrade}>📦</Text>
         <Text style={styles.produtoNameGrade} numberOfLines={2}>{item.nome}</Text>
-        <Text style={styles.produtoQty}>{item.estoque} {item.unidade}</Text>
+        <Text style={styles.produtoQty}>{item.quantidade} {item.unidade}</Text>
         <View style={styles.badgeContainerGrade}>
           {renderBadge(status)}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -93,6 +103,9 @@ export default function Produtos() {
     <View style={styles.emptyContainer}>
       <Ionicons name="search-outline" size={48} color={theme.colors.textLight} />
       <Text style={styles.emptyText}>Nenhum produto encontrado</Text>
+      <TouchableOpacity onPress={() => router.push("/produtos/novo")} style={styles.emptyButton}>
+        <Text style={styles.emptyButtonText}>Cadastrar produto</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -174,7 +187,7 @@ export default function Produtos() {
         />
       ) : (
         <FlatList
-          key={viewMode} // Força re-render ao mudar numColumns
+          key={viewMode}
           data={produtosFiltrados}
           keyExtractor={(item) => item.id}
           renderItem={viewMode === 'grade' ? renderProdutoGrade : renderProdutoLista}
@@ -184,6 +197,11 @@ export default function Produtos() {
           contentContainerStyle={styles.listContent}
         />
       )}
+
+      {/* FAB — Floating Action Button */}
+      <TouchableOpacity style={styles.fab} onPress={() => router.push("/produtos/novo")}>
+        <Ionicons name="add" size={28} color={theme.colors.white} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -259,6 +277,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: theme.spacing.xl,
+    paddingBottom: 80,
     flexGrow: 1,
   },
   row: {
@@ -350,6 +369,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.md,
   },
+  emptyButton: {
+    marginTop: theme.spacing.md,
+  },
+  emptyButtonText: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
   sectionHeader: {
     backgroundColor: theme.colors.background,
     paddingVertical: theme.spacing.sm,
@@ -358,5 +385,21 @@ const styles = StyleSheet.create({
   sectionHeaderText: {
     ...theme.typography.subtitle,
     color: theme.colors.primary,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
 });
