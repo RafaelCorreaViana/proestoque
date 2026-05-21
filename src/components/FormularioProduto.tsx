@@ -8,6 +8,7 @@ import { useProducts } from "../contexts/ProductsContext";
 import { CATEGORIAS_MOCK } from "../data/mockData";
 import { Input } from "./Input";
 import { Button } from "./Button";
+import ImagePickerField from "./ImagePickerField";
 import { theme } from "../constants/theme";
 
 export default function FormularioProduto() {
@@ -28,6 +29,7 @@ export default function FormularioProduto() {
         preco: 0,
         unidade: "un",
         observacao: "",
+        foto: "",
       },
       mode: "onTouched",
     });
@@ -44,6 +46,7 @@ export default function FormularioProduto() {
           preco: produto.preco,
           unidade: produto.unidade as ProdutoFormData["unidade"],
           observacao: produto.observacao ?? "",
+          foto: produto.foto ?? "",
         });
       }
     }
@@ -84,6 +87,15 @@ export default function FormularioProduto() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      {/* Campo: Foto */}
+      <Controller
+        control={control}
+        name="foto"
+        render={({ field: { value, onChange } }) => (
+          <ImagePickerField value={value ?? null} onChange={onChange} />
+        )}
+      />
+
       {/* Campo: Nome */}
       <Controller
         control={control}

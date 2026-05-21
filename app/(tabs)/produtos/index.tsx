@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, TouchableOpacity, ScrollView, SectionList } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, TouchableOpacity, ScrollView, SectionList, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme } from '../../../src/constants/theme';
@@ -71,7 +71,11 @@ export default function Produtos() {
         onPress={() => router.push(`/produtos/${item.id}`)}
       >
         <View style={styles.produtoInfo}>
-          <Text style={styles.produtoEmoji}>📦</Text>
+          {item.foto ? (
+            <Image source={{ uri: item.foto }} style={styles.produtoImagem} />
+          ) : (
+            <Text style={styles.produtoEmoji}>📦</Text>
+          )}
           <View style={styles.produtoDetails}>
             <Text style={styles.produtoName} numberOfLines={1}>{item.nome}</Text>
             <Text style={styles.produtoQty}>{item.quantidade} {item.unidade}</Text>
@@ -89,7 +93,11 @@ export default function Produtos() {
         style={styles.produtoCardGrade}
         onPress={() => router.push(`/produtos/${item.id}`)}
       >
-        <Text style={styles.produtoEmojiGrade}>📦</Text>
+        {item.foto ? (
+          <Image source={{ uri: item.foto }} style={styles.produtoImagemGrade} />
+        ) : (
+          <Text style={styles.produtoEmojiGrade}>📦</Text>
+        )}
         <Text style={styles.produtoNameGrade} numberOfLines={2}>{item.nome}</Text>
         <Text style={styles.produtoQty}>{item.quantidade} {item.unidade}</Text>
         <View style={styles.badgeContainerGrade}>
@@ -320,8 +328,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginRight: theme.spacing.md,
   },
+  produtoImagem: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.borderRadius.sm,
+    marginRight: theme.spacing.md,
+  },
   produtoEmojiGrade: {
     fontSize: 32,
+    marginBottom: theme.spacing.sm,
+  },
+  produtoImagemGrade: {
+    width: 60,
+    height: 60,
+    borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.sm,
   },
   produtoDetails: {

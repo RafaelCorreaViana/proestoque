@@ -29,6 +29,7 @@ export const produtoSchema = z.object({
   }),
 
   observacao: z.string().max(200, "Máximo 200 caracteres").optional(),
+  foto: z.string().optional(),
 });
 
 export type ProdutoFormData = z.infer<typeof produtoSchema>;

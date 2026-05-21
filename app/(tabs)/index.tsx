@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, RefreshControl, Image } from 'react-native';
 import { theme } from '../../src/constants/theme';
 import { getStatusEstoque, type Produto } from '../../src/data/mockData';
 import { Ionicons } from '@expo/vector-icons';
@@ -106,7 +106,11 @@ export default function Home() {
     return (
       <View style={styles.produtoCard}>
         <View style={styles.produtoInfo}>
-          <Text style={styles.produtoEmoji}>📦</Text>
+          {item.foto ? (
+            <Image source={{ uri: item.foto }} style={styles.produtoImagem} />
+          ) : (
+            <Text style={styles.produtoEmoji}>📦</Text>
+          )}
           <View style={styles.produtoDetails}>
             <Text style={styles.produtoName} numberOfLines={1}>{item.nome}</Text>
             <Text style={styles.produtoQty}>{item.quantidade} {item.unidade}</Text>
@@ -291,6 +295,12 @@ const styles = StyleSheet.create({
   },
   produtoEmoji: {
     fontSize: 24,
+    marginRight: theme.spacing.md,
+  },
+  produtoImagem: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.borderRadius.sm,
     marginRight: theme.spacing.md,
   },
   produtoDetails: {
