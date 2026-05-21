@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, RefreshControl } from 'react-native';
 import { theme } from '../../src/constants/theme';
-import { PRODUTOS_MOCK, getStatusEstoque, Produto } from '../../src/data/mockData';
+import { getStatusEstoque, type Produto } from '../../src/data/mockData';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useProducts } from '../../src/contexts/ProductsContext';
 
 export default function Home() {
   const { user } = useAuth();
+  const { produtos } = useProducts();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = () => {
@@ -16,11 +18,11 @@ export default function Home() {
     }, 1500);
   };
 
-  // Cálculos de resumo
-  const totalProdutos = PRODUTOS_MOCK.length;
-  const produtosCriticos = PRODUTOS_MOCK.filter(p => getStatusEstoque(p) !== 'normal');
-  const categoriasUnicas = new Set(PRODUTOS_MOCK.map(p => p.categoriaId)).size;
-  const valorTotalEstoque = PRODUTOS_MOCK.reduce((acc, p) => acc + (p.preco * p.estoque), 0);
+  // Cálculos de resumo baseados no contexto
+  const totalProdutos = produtos.length;
+  const produtosCriticos = produtos.filter(p => getStatusEstoque(p) !== 'normal');
+  const categoriasUnicas = new Set(produtos.map(p => p.categoriaId)).size;
+  const valorTotalEstoque = produtos.reduce((acc, p) => acc + (p.preco * p.quantidade), 0);
 
   const dataDeHoje = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -72,7 +74,7 @@ export default function Home() {
               <View key={produto.id} style={[styles.alertItem, index > 0 && styles.alertDivider]}>
                 <Text style={styles.alertItemName} numberOfLines={1}>{produto.nome}</Text>
                 <Text style={styles.alertItemValue}>
-                  {produto.estoque}/{produto.estoqueMinimo}
+                  {produto.quantidade}/{produto.quantidadeMinima}
                 </Text>
               </View>
             ))}
@@ -107,7 +109,7 @@ export default function Home() {
           <Text style={styles.produtoEmoji}>📦</Text>
           <View style={styles.produtoDetails}>
             <Text style={styles.produtoName} numberOfLines={1}>{item.nome}</Text>
-            <Text style={styles.produtoQty}>{item.estoque} {item.unidade}</Text>
+            <Text style={styles.produtoQty}>{item.quantidade} {item.unidade}</Text>
           </View>
         </View>
         <View style={[styles.badge, { backgroundColor: badgeColor }]}>
@@ -120,7 +122,7 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
-        data={PRODUTOS_MOCK}
+        data={produtos}
         keyExtractor={(item) => item.id}
         renderItem={renderProduto}
         ListHeaderComponent={renderHeader}
