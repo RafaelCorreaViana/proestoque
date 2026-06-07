@@ -5,7 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { produtoSchema, type ProdutoFormData } from "../schemas/produtoSchema";
 import { useProducts } from "../contexts/ProductsContext";
-import { CATEGORIAS_MOCK } from "../data/mockData";
+import { useCategorias } from "../hooks/useCategorias";
 import { Input } from "./Input";
 import { Button } from "./Button";
 import ImagePickerField from "./ImagePickerField";
@@ -17,22 +17,27 @@ export default function FormularioProduto() {
   const router = useRouter();
 
   const { adicionarProduto, editarProduto, deletarProduto, getProdutoById } = useProducts();
+  const { categorias } = useCategorias();
 
-  const { control, handleSubmit, reset, formState: { errors, isSubmitting } } =
-    useForm<ProdutoFormData>({
-      resolver: zodResolver(produtoSchema),
-      defaultValues: {
-        nome: "",
-        categoriaId: "",
-        quantidade: 0,
-        quantidadeMinima: 0,
-        preco: 0,
-        unidade: "un",
-        observacao: "",
-        foto: "",
-      },
-      mode: "onTouched",
-    });
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProdutoFormData>({
+    resolver: zodResolver(produtoSchema),
+    defaultValues: {
+      nome: "",
+      categoriaId: "",
+      quantidade: 0,
+      quantidadeMinima: 0,
+      preco: 0,
+      unidade: "un",
+      observacao: "",
+      foto: "",
+    },
+    mode: "onTouched",
+  });
 
   useEffect(() => {
     if (modoEdicao && id) {
@@ -50,7 +55,7 @@ export default function FormularioProduto() {
         });
       }
     }
-  }, [id, modoEdicao]);
+  }, [id, modoEdicao, getProdutoById]);
 
   const onSubmit = async (data: ProdutoFormData) => {
     try {
@@ -60,8 +65,11 @@ export default function FormularioProduto() {
         await adicionarProduto(data);
       }
       router.back();
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível salvar o produto.");
+    } catch (error: any) {
+      Alert.alert(
+        "Não foi possível salvar",
+        error.message ?? "Verifique sua conexão e tente novamente."
+      );
     }
   };
 
@@ -76,8 +84,12 @@ export default function FormularioProduto() {
           style: "destructive",
           onPress: async () => {
             if (id) {
-              await deletarProduto(id);
-              router.back();
+              try {
+                await deletarProduto(id);
+                router.back();
+              } catch (error: any) {
+                Alert.alert("Erro ao excluir", error.message);
+              }
             }
           },
         },
@@ -86,7 +98,11 @@ export default function FormularioProduto() {
   };
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Campo: Foto */}
       <Controller
         control={control}
@@ -121,14 +137,26 @@ export default function FormularioProduto() {
           name="categoriaId"
           render={({ field: { value, onChange }, fieldState: { error } }) => (
             <View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pickerChips}>
-                {CATEGORIAS_MOCK.map((cat) => (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.pickerChips}
+              >
+                {categorias.map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
-                    style={[styles.pickerChip, value === cat.id && styles.pickerChipSelected]}
+                    style={[
+                      styles.pickerChip,
+                      value === cat.id && styles.pickerChipSelected,
+                    ]}
                     onPress={() => onChange(cat.id)}
                   >
-                    <Text style={[styles.pickerChipText, value === cat.id && styles.pickerChipTextSelected]}>
+                    <Text
+                      style={[
+                        styles.pickerChipText,
+                        value === cat.id && styles.pickerChipTextSelected,
+                      ]}
+                    >
                       {cat.nome}
                     </Text>
                   </TouchableOpacity>
@@ -203,10 +231,18 @@ export default function FormularioProduto() {
                 {["un", "kg", "cx", "L", "m"].map((un) => (
                   <TouchableOpacity
                     key={un}
-                    style={[styles.unidadeButton, value === un && styles.unidadeButtonSelected]}
+                    style={[
+                      styles.unidadeButton,
+                      value === un && styles.unidadeButtonSelected,
+                    ]}
                     onPress={() => onChange(un)}
                   >
-                    <Text style={[styles.unidadeButtonText, value === un && styles.unidadeButtonTextSelected]}>
+                    <Text
+                      style={[
+                        styles.unidadeButtonText,
+                        value === un && styles.unidadeButtonTextSelected,
+                      ]}
+                    >
                       {un}
                     </Text>
                   </TouchableOpacity>
@@ -244,13 +280,21 @@ export default function FormularioProduto() {
         />
 
         {modoEdicao && (
-          <Button
-            title="Excluir produto"
-            onPress={handleDeletar}
-            variant="ghost"
-            fullWidth
-            style={styles.deleteButton}
-          />
+          <>
+            <Button
+              title="Movimentações de Estoque"
+              onPress={() => router.push(`/(tabs)/produtos/${id}/movimentacoes` as any)}
+              variant="outline"
+              fullWidth
+            />
+            <Button
+              title="Excluir produto"
+              onPress={handleDeletar}
+              variant="ghost"
+              fullWidth
+              style={styles.deleteButton}
+            />
+          </>
         )}
       </View>
     </ScrollView>
@@ -265,6 +309,7 @@ const styles = StyleSheet.create({
   container: {
     padding: theme.spacing.xl,
     gap: theme.spacing.sm,
+    paddingBottom: 40,
   },
   fieldGroup: {
     marginBottom: theme.spacing.md,
