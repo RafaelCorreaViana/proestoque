@@ -1,19 +1,31 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, TouchableOpacity, ScrollView, SectionList, Image } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, TouchableOpacity, ScrollView, SectionList, Image, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme } from '../../../src/constants/theme';
-import { CATEGORIAS_MOCK, getStatusEstoque, type Produto } from '../../../src/data/mockData';
-import { useProducts } from '../../../src/contexts/ProductsContext';
+import { useProducts, type Produto } from '../../../src/contexts/ProductsContext';
+import { useCategorias } from '../../../src/hooks/useCategorias';
+import { LoadingView } from '../../../src/components/LoadingView';
+import { ErrorView } from '../../../src/components/ErrorView';
+import { getStatusEstoque } from '../../../src/utils/formatters';
 
 type ViewMode = 'lista' | 'grade' | 'secao';
 
 export default function Produtos() {
-  const { produtos } = useProducts();
+  const { produtos, isLoading, error, carregarProdutos } = useProducts();
+  const { categorias } = useCategorias();
+  
   const [busca, setBusca] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('Todos');
   const [viewMode, setViewMode] = useState<ViewMode>('lista');
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await carregarProdutos();
+    setRefreshing(false);
+  }, [carregarProdutos]);
 
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((produto) => {
@@ -24,13 +36,13 @@ export default function Produtos() {
   }, [produtos, busca, categoriaSelecionada]);
 
   const produtosAgrupados = useMemo(() => {
-    const secoes = CATEGORIAS_MOCK.map(cat => ({
+    const secoes = categorias.map(cat => ({
       id: cat.id,
       title: cat.nome,
       data: produtosFiltrados.filter(p => p.categoriaId === cat.id)
     })).filter(secao => secao.data.length > 0);
     return secoes;
-  }, [produtosFiltrados]);
+  }, [categorias, produtosFiltrados]);
 
   const toggleViewMode = () => {
     if (viewMode === 'lista') setViewMode('grade');
@@ -64,7 +76,7 @@ export default function Produtos() {
   };
 
   const renderProdutoLista = ({ item }: { item: Produto }) => {
-    const status = getStatusEstoque(item);
+    const status = getStatusEstoque(item.quantidade, item.quantidadeMinima);
     return (
       <TouchableOpacity 
         style={styles.produtoCard}
@@ -87,7 +99,7 @@ export default function Produtos() {
   };
 
   const renderProdutoGrade = ({ item }: { item: Produto }) => {
-    const status = getStatusEstoque(item);
+    const status = getStatusEstoque(item.quantidade, item.quantidadeMinima);
     return (
       <TouchableOpacity 
         style={styles.produtoCardGrade}
@@ -124,7 +136,7 @@ export default function Produtos() {
   );
 
   const renderChips = () => {
-    const chips = [{ id: 'Todos', nome: 'Todos' }, ...CATEGORIAS_MOCK];
+    const chips = [{ id: 'Todos', nome: 'Todos' }, ...categorias];
     
     return (
       <View>
@@ -151,6 +163,14 @@ export default function Produtos() {
       </View>
     );
   };
+
+  if (isLoading && produtos.length === 0) {
+    return <LoadingView mensagem="Buscando produtos..." />;
+  }
+
+  if (error && produtos.length === 0) {
+    return <ErrorView mensagem={error} onRetry={carregarProdutos} />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -192,6 +212,14 @@ export default function Produtos() {
           ListEmptyComponent={renderEmptyComponent}
           contentContainerStyle={styles.listContent}
           stickySectionHeadersEnabled={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+            />
+          }
         />
       ) : (
         <FlatList
@@ -203,6 +231,14 @@ export default function Produtos() {
           columnWrapperStyle={viewMode === 'grade' ? styles.row : undefined}
           ListEmptyComponent={renderEmptyComponent}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+            />
+          }
         />
       )}
 

@@ -1,28 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, RefreshControl, Image } from 'react-native';
 import { theme } from '../../src/constants/theme';
-import { getStatusEstoque, type Produto } from '../../src/data/mockData';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { useProducts } from '../../src/contexts/ProductsContext';
+import { useProducts, type Produto } from '../../src/contexts/ProductsContext';
+import { getStatusEstoque, formatarPreco } from '../../src/utils/formatters';
+import { LoadingView } from '../../src/components/LoadingView';
+import { ErrorView } from '../../src/components/ErrorView';
 
 export default function Home() {
   const { user } = useAuth();
-  const { produtos } = useProducts();
+  const { produtos, isLoading, error, carregarProdutos } = useProducts();
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1500);
-  };
+    await carregarProdutos();
+    setRefreshing(false);
+  }, [carregarProdutos]);
 
   // Cálculos de resumo baseados no contexto
   const totalProdutos = produtos.length;
-  const produtosCriticos = produtos.filter(p => getStatusEstoque(p) !== 'normal');
-  const categoriasUnicas = new Set(produtos.map(p => p.categoriaId)).size;
-  const valorTotalEstoque = produtos.reduce((acc, p) => acc + (p.preco * p.quantidade), 0);
+  const produtosCriticos = useMemo(() => {
+    return produtos.filter(p => getStatusEstoque(p.quantidade, p.quantidadeMinima) !== 'normal');
+  }, [produtos]);
+
+  const categoriasUnicas = useMemo(() => {
+    return new Set(produtos.map(p => p.categoriaId)).size;
+  }, [produtos]);
+
+  const valorTotalEstoque = useMemo(() => {
+    return produtos.reduce((acc, p) => acc + (p.preco * p.quantidade), 0);
+  }, [produtos]);
 
   const dataDeHoje = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -35,12 +44,12 @@ export default function Home() {
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
   const primeiroNome = user?.nome?.split(' ')[0] ?? '';
 
-  const cardsResumo = [
+  const cardsResumo = useMemo(() => [
     { id: '1', emoji: '📦', valor: totalProdutos.toString(), label: 'Produtos' },
     { id: '2', emoji: '⚠️', valor: produtosCriticos.length.toString(), label: 'Alertas', isError: produtosCriticos.length > 0 },
     { id: '3', emoji: '🗂️', valor: categoriasUnicas.toString(), label: 'Categorias' },
-    { id: '4', emoji: '💰', valor: `R$ ${valorTotalEstoque.toFixed(0)}`, label: 'Em Estoque' },
-  ];
+    { id: '4', emoji: '💰', valor: formatarPreco(valorTotalEstoque), label: 'Em Estoque' },
+  ], [totalProdutos, produtosCriticos.length, categoriasUnicas, valorTotalEstoque]);
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -60,7 +69,7 @@ export default function Home() {
         {cardsResumo.map(card => (
           <View key={card.id} style={styles.card}>
             <Text style={styles.cardEmoji}>{card.emoji}</Text>
-            <Text style={[styles.cardValue, card.isError && styles.errorText]}>{card.valor}</Text>
+            <Text style={[styles.cardValue, card.isError && styles.errorText]} numberOfLines={1} adjustsFontSizeToFit>{card.valor}</Text>
             <Text style={styles.cardLabel}>{card.label}</Text>
           </View>
         ))}
@@ -78,9 +87,6 @@ export default function Home() {
                 </Text>
               </View>
             ))}
-            <View style={styles.alertFooter}>
-              <Text style={styles.alertFooterText}>Ver todos →</Text>
-            </View>
           </View>
         </View>
       )}
@@ -90,7 +96,7 @@ export default function Home() {
   );
 
   const renderProduto = ({ item }: { item: Produto }) => {
-    const status = getStatusEstoque(item);
+    const status = getStatusEstoque(item.quantidade, item.quantidadeMinima);
     
     let badgeColor = theme.colors.secondary; // Normal
     let badgeText = 'Normal';
@@ -123,10 +129,18 @@ export default function Home() {
     );
   };
 
+  if (isLoading && produtos.length === 0) {
+    return <LoadingView mensagem="Carregando dashboard..." />;
+  }
+
+  if (error && produtos.length === 0) {
+    return <ErrorView mensagem={error} onRetry={carregarProdutos} />;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
-        data={produtos}
+        data={produtos.slice(0, 5)} // Mostra apenas os 5 produtos mais recentes no dashboard
         keyExtractor={(item) => item.id}
         renderItem={renderProduto}
         ListHeaderComponent={renderHeader}
@@ -256,18 +270,6 @@ const styles = StyleSheet.create({
     ...theme.typography.body,
     color: theme.colors.error,
     fontWeight: '600',
-  },
-  alertFooter: {
-    alignItems: 'center',
-    paddingTop: theme.spacing.md,
-    marginTop: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  alertFooterText: {
-    ...theme.typography.body,
-    color: theme.colors.primary,
-    fontWeight: '500',
   },
   sectionTitle: {
     ...theme.typography.subtitle,
