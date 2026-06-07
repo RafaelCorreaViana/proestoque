@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { api } from "../../../../../src/services/api";
-import { useProducts } from "../../../../../src/contexts/ProductsContext";
-import { LoadingView } from "../../../../../src/components/LoadingView";
-import { ErrorView } from "../../../../../src/components/ErrorView";
-import { formatarData } from "../../../../../src/utils/formatters";
-import { theme } from "../../../../../src/constants/theme";
+import { api } from "@/src/services/api";
+import { useProducts } from "@/src/contexts/ProductsContext";
+import { LoadingView } from "@/src/components/LoadingView";
+import { ErrorView } from "@/src/components/ErrorView";
+import { formatarData } from "@/src/utils/formatters";
+import { theme } from "@/src/constants/theme";
 
 type Movimentacao = {
   id: string;

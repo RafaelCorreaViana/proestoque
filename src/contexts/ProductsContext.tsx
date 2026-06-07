@@ -15,6 +15,7 @@ export type Produto = {
   categoria?: { id: string; nome: string; icone: string; cor: string };
   ultimaMovimentacao: string;
   criadoEm: string;
+  foto?: string | null;
 };
 
 type ProductsState = { produtos: Produto[]; isLoading: boolean; error: string | null };

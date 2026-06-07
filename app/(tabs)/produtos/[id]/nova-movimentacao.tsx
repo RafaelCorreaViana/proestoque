@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { api } from "../../../../../src/services/api";
-import { useProducts } from "../../../../../src/contexts/ProductsContext";
-import { Input } from "../../../../../src/components/Input";
-import { Button } from "../../../../../src/components/Button";
-import { theme } from "../../../../../src/constants/theme";
+import { api } from "@/src/services/api";
+import { useProducts } from "@/src/contexts/ProductsContext";
+import { Input } from "@/src/components/Input";
+import { Button } from "@/src/components/Button";
+import { theme } from "@/src/constants/theme";
 
 export default function NovaMovimentacao() {
   const { id } = useLocalSearchParams<{ id: string }>();
