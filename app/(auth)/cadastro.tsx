@@ -5,8 +5,11 @@ import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { LogoProEstoque } from '../../src/components/LogoProEstoque';
 import { theme } from '../../src/constants/theme';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { Alert } from 'react-native';
 
 export default function Cadastro() {
+  const { registrar } = useAuth();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -15,7 +18,7 @@ export default function Cadastro() {
   const [loading, setLoading] = useState(false);
   const [senhaError, setSenhaError] = useState<string | undefined>(undefined);
 
-  const handleCadastro = () => {
+  const handleCadastro = async () => {
     setSenhaError(undefined);
     
     if (senha !== confirmarSenha) {
@@ -23,11 +26,21 @@ export default function Cadastro() {
       return;
     }
 
+    if (!nome || !email || !senha) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await registrar(nome, email, senha);
+      // Ao registrar com sucesso, o token é salvo e o AuthProvider atualiza
+      // o estado isAuthenticated, redirecionando o usuário automaticamente
+    } catch (error: any) {
+      Alert.alert('Erro', error.message);
+    } finally {
       setLoading(false);
-      router.replace('/(auth)/login');
-    }, 2000);
+    }
   };
 
   return (

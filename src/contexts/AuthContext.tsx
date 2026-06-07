@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { api, apiEvents } from "../services/api";
 
 type User = {
   id: string;
@@ -13,12 +14,14 @@ type AuthContextType = {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, senha: string) => Promise<void>;
+  registrar: (nome: string, email: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const STORAGE_KEYS = {
-  TOKEN: "@proestoque:token",
-  USER:  "@proestoque:user",
+  TOKEN:         "@proestoque:token",
+  REFRESH_TOKEN: "@proestoque:refresh_token",
+  USER:          "@proestoque:user",
 } as const;
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -27,6 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Escuta evento de deslogar vindo do interceptor da API (Ex: refresh token expirado)
+  useEffect(() => {
+    apiEvents.onSignOut = () => {
+      setToken(null);
+      setUser(null);
+    };
+  }, []);
 
   useEffect(() => {
     async function carregarSessao() {
@@ -50,9 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Delay visual minimo apenas para testes do SplashScreen (1.5s como pedido no bônus)
+    // Delay visual mínimo de 1.5s para carregamento do SplashScreen
     const timeoutId = setTimeout(() => {
-        carregarSessao();
+      carregarSessao();
     }, 1500);
 
     return () => clearTimeout(timeoutId);
@@ -61,24 +72,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, senha: string) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
       if (!email || !senha) throw new Error("Preencha todos os campos");
 
-      const tokenSimulado = "token_simulado_" + Date.now();
-      const userSimulado: User = {
-        id: "user_1",
-        nome: email.split("@")[0],
-        email,
-      };
+      const response = await api.post("/auth/login", { email, senha });
+      const { usuario, token, refreshToken } = response.data;
 
       await AsyncStorage.multiSet([
-        [STORAGE_KEYS.TOKEN, tokenSimulado],
-        [STORAGE_KEYS.USER, JSON.stringify(userSimulado)],
+        [STORAGE_KEYS.TOKEN, token],
+        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
+        [STORAGE_KEYS.USER, JSON.stringify(usuario)],
       ]);
 
-      setToken(tokenSimulado);
-      setUser(userSimulado);
+      setToken(token);
+      setUser(usuario);
+    } catch (error: any) {
+      const mensagem = error.response?.data?.erro ?? "E-mail ou senha inválidos";
+      throw new Error(mensagem);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const registrar = useCallback(async (nome: string, email: string, senha: string) => {
+    setIsLoading(true);
+    try {
+      if (!nome || !email || !senha) throw new Error("Preencha todos os campos");
+
+      const response = await api.post("/auth/registro", { nome, email, senha });
+      const { usuario, token, refreshToken } = response.data;
+
+      await AsyncStorage.multiSet([
+        [STORAGE_KEYS.TOKEN, token],
+        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
+        [STORAGE_KEYS.USER, JSON.stringify(usuario)],
+      ]);
+
+      setToken(token);
+      setUser(usuario);
+    } catch (error: any) {
+      const mensagem = error.response?.data?.erro ?? "Erro ao criar conta";
+      throw new Error(mensagem);
     } finally {
       setIsLoading(false);
     }
@@ -86,11 +119,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await AsyncStorage.multiRemove([STORAGE_KEYS.TOKEN, STORAGE_KEYS.USER]);
-    setToken(null);
-    setUser(null);
-    setIsLoading(false);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.TOKEN,
+        STORAGE_KEYS.REFRESH_TOKEN,
+        STORAGE_KEYS.USER
+      ]);
+      setToken(null);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   return (
@@ -101,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!token,
         login,
+        registrar,
         logout,
       }}
     >
