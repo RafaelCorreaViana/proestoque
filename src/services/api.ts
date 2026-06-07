@@ -1,13 +1,13 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 
-// Configura o IP de Wi-Fi local descoberto do Windows (192.168.1.114)
-const BASE_URL = __DEV__
-  ? "http://192.168.1.114:3333/api"
-  : "https://proestoque-api.onrender.com/api";
+// Lê a URL da API do app.config.js → extra.apiUrl
+const API_URL = (Constants.expoConfig?.extra?.apiUrl as string)
+  ?? "http://localhost:3333/api";
 
 export const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_URL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
 });
@@ -47,9 +47,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
 
     // Se receber 401 (Não autorizado/Token Expirado) e a requisição ainda não foi reenviada
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -73,8 +74,8 @@ api.interceptors.response.use(
           throw new Error("Nenhum refresh token encontrado no AsyncStorage");
         }
 
-        // Renova os tokens chamando POST /auth/refresh
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
+        // Renova os tokens chamando POST /auth/refresh (usando axios puro para evitar loops)
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
           refreshToken,
         });
 
@@ -107,11 +108,14 @@ api.interceptors.response.use(
 
         // Notifica o AuthContext para deslogar a interface do usuário
         apiEvents.onSignOut();
-
-        return Promise.reject(refreshError);
       }
     }
 
-    return Promise.reject(error);
+    // Extrai a mensagem de erro do backend ou usa mensagem genérica
+    const mensagem =
+      error.response?.data?.erro ??
+      (error.code === "ECONNABORTED" ? "Tempo de conexão esgotado" : "Erro de conexão");
+
+    return Promise.reject(new Error(mensagem));
   }
 );
