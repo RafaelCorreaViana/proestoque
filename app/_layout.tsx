@@ -11,7 +11,7 @@ function NavigationGuard() {
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !segments[0]) return;
 
     const estaNoGrupoAuth = segments[0] === '(auth)';
 

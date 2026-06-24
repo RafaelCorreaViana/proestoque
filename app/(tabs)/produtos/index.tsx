@@ -8,6 +8,7 @@ import { useCategorias } from '../../../src/hooks/useCategorias';
 import { LoadingView } from '../../../src/components/LoadingView';
 import { ErrorView } from '../../../src/components/ErrorView';
 import { getStatusEstoque } from '../../../src/utils/formatters';
+import { ProdutoListaSkeleton } from '../../../src/components/ProdutoSkeleton';
 
 type ViewMode = 'lista' | 'grade' | 'secao';
 
@@ -164,10 +165,6 @@ export default function Produtos() {
     );
   };
 
-  if (isLoading && produtos.length === 0) {
-    return <LoadingView mensagem="Buscando produtos..." />;
-  }
-
   if (error && produtos.length === 0) {
     return <ErrorView mensagem={error} onRetry={carregarProdutos} />;
   }
@@ -203,7 +200,11 @@ export default function Produtos() {
         {renderChips()}
       </View>
 
-      {viewMode === 'secao' ? (
+      {isLoading && produtos.length === 0 ? (
+        <ScrollView contentContainerStyle={styles.listContent}>
+          <ProdutoListaSkeleton />
+        </ScrollView>
+      ) : viewMode === 'secao' ? (
         <SectionList
           sections={produtosAgrupados}
           keyExtractor={(item) => item.id}

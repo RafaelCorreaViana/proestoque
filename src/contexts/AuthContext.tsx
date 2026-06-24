@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+
   // Escuta evento de deslogar vindo do interceptor da API (Ex: refresh token expirado)
   useEffect(() => {
     apiEvents.onSignOut = () => {

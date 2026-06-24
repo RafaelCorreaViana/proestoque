@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TextInputProps, TouchableOpacity } from 'react-native';
+import { View, TextInput, Text, StyleSheet, TextInputProps, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 
-interface InputProps extends TextInputProps {
+interface InputProps extends Omit<TextInputProps, 'style'> {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
   error?: string;
   secureTextEntry?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function Input({

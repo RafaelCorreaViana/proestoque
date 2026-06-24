@@ -47,7 +47,7 @@ export default function Cadastro() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView 
         style={styles.keyboardView} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           

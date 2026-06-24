@@ -7,6 +7,8 @@ import { useProducts, type Produto } from '../../src/contexts/ProductsContext';
 import { getStatusEstoque, formatarPreco } from '../../src/utils/formatters';
 import { LoadingView } from '../../src/components/LoadingView';
 import { ErrorView } from '../../src/components/ErrorView';
+import { Skeleton } from '../../src/components/Skeleton';
+import { ProdutoListaSkeleton } from '../../src/components/ProdutoSkeleton';
 
 export default function Home() {
   const { user } = useAuth();
@@ -69,13 +71,17 @@ export default function Home() {
         {cardsResumo.map(card => (
           <View key={card.id} style={styles.card}>
             <Text style={styles.cardEmoji}>{card.emoji}</Text>
-            <Text style={[styles.cardValue, card.isError && styles.errorText]} numberOfLines={1} adjustsFontSizeToFit>{card.valor}</Text>
+            {isLoading && produtos.length === 0 ? (
+              <Skeleton width={60} height={28} borderRadius={4} style={{ marginVertical: 6 }} />
+            ) : (
+              <Text style={[styles.cardValue, card.isError && styles.errorText]} numberOfLines={1} adjustsFontSizeToFit>{card.valor}</Text>
+            )}
             <Text style={styles.cardLabel}>{card.label}</Text>
           </View>
         ))}
       </View>
 
-      {produtosCriticos.length > 0 && (
+      {!isLoading && produtosCriticos.length > 0 && (
         <View style={styles.alertSection}>
           <Text style={styles.alertTitle}>⚠️ Estoque crítico ({produtosCriticos.length})</Text>
           <View style={styles.alertCard}>
@@ -129,10 +135,6 @@ export default function Home() {
     );
   };
 
-  if (isLoading && produtos.length === 0) {
-    return <LoadingView mensagem="Carregando dashboard..." />;
-  }
-
   if (error && produtos.length === 0) {
     return <ErrorView mensagem={error} onRetry={carregarProdutos} />;
   }
@@ -140,10 +142,11 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
-        data={produtos.slice(0, 5)} // Mostra apenas os 5 produtos mais recentes no dashboard
+        data={isLoading && produtos.length === 0 ? [] : produtos.slice(0, 5)} // Mostra apenas os 5 produtos mais recentes no dashboard
         keyExtractor={(item) => item.id}
         renderItem={renderProduto}
         ListHeaderComponent={renderHeader}
+        ListFooterComponent={isLoading && produtos.length === 0 ? <ProdutoListaSkeleton count={3} /> : null}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl

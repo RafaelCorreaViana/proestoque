@@ -20,7 +20,7 @@ export default function RecuperarSenha() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView 
         style={styles.keyboardView} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
           <Button 
