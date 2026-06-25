@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, useCallback } from "react";
 import { api } from "../services/api";
 import type { ProdutoFormData } from "../schemas/produtoSchema";
+import { notificarEstoqueCritico, limparBadge } from "../services/notifications";
 
 // —— Tipos ————————————————————————————————————————————————————
 export type Produto = {
@@ -82,6 +83,14 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await api.get<Produto[]>("/produtos");
       dispatch({ type: "LOAD_SUCCESS", payload: data });
+
+      // Verificar alertas e notificar
+      const criticos = data.filter(p => p.quantidade < p.quantidadeMinima);
+      if (criticos.length > 0) {
+        await notificarEstoqueCritico(criticos);
+      } else {
+        await limparBadge(); // Sem alertas = limpa o badge
+      }
     } catch (error: any) {
       dispatch({ type: "LOAD_ERROR", payload: error.message });
     }
