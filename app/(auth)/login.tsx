@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Alert } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
@@ -15,8 +15,8 @@ export default function Login() {
   const handleLogin = async () => {
     try {
       await login(email, senha);
-    } catch (error) {
-      console.warn("Erro no login", error);
+    } catch (error: any) {
+      Alert.alert('Erro de Login', error.message);
     }
   };
 
