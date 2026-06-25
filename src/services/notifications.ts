@@ -76,10 +76,10 @@ export async function agendarVerificacaoDiaria() {
       body: "Verifique o estoque de hoje. Toque para abrir.",
     },
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: 8,      // 8h da manhã
       minute: 0,
-      repeats: true, // Todos os dias
-    } as any,
+    },
   });
 }
 
