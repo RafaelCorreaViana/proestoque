@@ -1,53 +1,7 @@
-import { useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
+import { Stack } from 'expo-router';
+import { AuthProvider } from '../src/contexts/AuthContext';
 import { ProductsProvider } from '../src/contexts/ProductsContext';
-import { SplashScreen } from '../src/components/SplashScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { solicitarPermissaoNotificacoes, agendarVerificacaoDiaria } from '../src/services/notifications';
-
-function NavigationGuard() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading || !segments[0]) return;
-
-    const estaNoGrupoAuth = segments[0] === '(auth)';
-
-    if (!isAuthenticated && !estaNoGrupoAuth) {
-      const timer = setTimeout(() => {
-        router.replace('/(auth)/login');
-      }, 0);
-      return () => clearTimeout(timer);
-    } else if (isAuthenticated && estaNoGrupoAuth) {
-      const timer = setTimeout(() => {
-        router.replace('/(tabs)');
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, isLoading, segments]);
-
-  useEffect(() => {
-    async function configurarNotificacoes() {
-      const temPermissao = await solicitarPermissaoNotificacoes();
-      if (temPermissao) {
-        await agendarVerificacaoDiaria();
-      }
-    }
-
-    if (isAuthenticated) {
-      configurarNotificacoes();
-    }
-  }, [isAuthenticated]);
-
-  if (isLoading) {
-    return <SplashScreen />;
-  }
-
-  return null;
-}
 
 export default function RootLayout() {
   return (
@@ -58,7 +12,6 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(tabs)" />
           </Stack>
-          <NavigationGuard />
         </ProductsProvider>
       </AuthProvider>
     </SafeAreaProvider>

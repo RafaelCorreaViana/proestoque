@@ -1,8 +1,34 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../src/constants/theme';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { solicitarPermissaoNotificacoes, agendarVerificacaoDiaria } from '../../src/services/notifications';
 
 export default function TabsLayout() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    async function configurarNotificacoes() {
+      const temPermissao = await solicitarPermissaoNotificacoes();
+      if (temPermissao) {
+        await agendarVerificacaoDiaria();
+      }
+    }
+
+    if (isAuthenticated) {
+      configurarNotificacoes();
+    }
+  }, [isAuthenticated]);
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
