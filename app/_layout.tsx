@@ -17,9 +17,15 @@ function NavigationGuard() {
     const estaNoGrupoAuth = segments[0] === '(auth)';
 
     if (!isAuthenticated && !estaNoGrupoAuth) {
-      router.replace('/(auth)/login');
+      const timer = setTimeout(() => {
+        router.replace('/(auth)/login');
+      }, 0);
+      return () => clearTimeout(timer);
     } else if (isAuthenticated && estaNoGrupoAuth) {
-      router.replace('/(tabs)');
+      const timer = setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, isLoading, segments]);
 
