@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const user = userString[1] ? JSON.parse(userString[1]) : null;
 
         if (token && user) {
+          api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           setToken(token);
           setUser(user);
         }
@@ -77,6 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await api.post("/auth/login", { email, senha });
       const { usuario, token, refreshToken } = response.data;
 
+      // Armazena em memória imediatamente para evitar delay do AsyncStorage
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.TOKEN, token],
         [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
@@ -98,6 +102,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await api.post("/auth/registro", { nome, email, senha });
       const { usuario, token, refreshToken } = response.data;
 
+      // Armazena em memória imediatamente para evitar delay do AsyncStorage
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.TOKEN, token],
         [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
@@ -115,6 +122,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 300));
+      
+      // Limpa os cabeçalhos em memória
+      delete api.defaults.headers.common["Authorization"];
+
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.TOKEN,
         STORAGE_KEYS.REFRESH_TOKEN,

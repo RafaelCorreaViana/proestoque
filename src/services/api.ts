@@ -57,6 +57,11 @@ api.interceptors.response.use(
         })
           .then((token) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
+            if (originalRequest.data && typeof originalRequest.data === "string") {
+              try {
+                originalRequest.data = JSON.parse(originalRequest.data);
+              } catch (e) {}
+            }
             return api(originalRequest);
           })
           .catch((err) => {
@@ -90,6 +95,15 @@ api.interceptors.response.use(
         // Atualiza cabeçalhos globais e da requisição original
         api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+        // Evita erro de rede no Android ao reenviar POST/PUT com body já serializado
+        if (originalRequest.data && typeof originalRequest.data === "string") {
+          try {
+            originalRequest.data = JSON.parse(originalRequest.data);
+          } catch (e) {
+            // Ignora se não for JSON
+          }
+        }
 
         processQueue(null, newAccessToken);
         isRefreshing = false;
