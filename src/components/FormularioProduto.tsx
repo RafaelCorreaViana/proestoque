@@ -66,6 +66,7 @@ export default function FormularioProduto() {
       }
       router.back();
     } catch (error: any) {
+      console.log("❌ [FormularioProduto Error]:", error);
       Alert.alert(
         "Não foi possível salvar",
         error.message ?? "Verifique sua conexão e tente novamente."

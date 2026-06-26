@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Escuta evento de deslogar vindo do interceptor da API (Ex: refresh token expirado)
   useEffect(() => {
     apiEvents.onSignOut = () => {
+      delete api.defaults.headers.common["Authorization"];
       setToken(null);
       setUser(null);
     };

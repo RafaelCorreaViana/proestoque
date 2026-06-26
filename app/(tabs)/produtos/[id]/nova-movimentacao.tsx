@@ -53,6 +53,7 @@ export default function NovaMovimentacao() {
         },
       ]);
     } catch (err: any) {
+      console.log("❌ [NovaMovimentacao Error]:", err);
       Alert.alert("Erro", err.message ?? "Não foi possível registrar a movimentação.");
     } finally {
       setLoading(false);

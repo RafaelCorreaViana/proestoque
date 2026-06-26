@@ -9,7 +9,10 @@ const API_URL = (Constants.expoConfig?.extra?.apiUrl as string)
 export const api = axios.create({
   baseURL: API_URL,
   timeout: 30000,
-  headers: { "Content-Type": "application/json" },
+  headers: { 
+    "Content-Type": "application/json",
+    "Connection": "close"
+  },
 });
 
 // Evento global para escutar expiração de sessão e forçar logout na UI
@@ -17,14 +20,25 @@ export const apiEvents = {
   onSignOut: () => {},
 };
 
-// Interceptor de Request: Adiciona o access token JWT em toda chamada automaticamente
-api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem("@proestoque:token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Interceptor de Request: Síncrono para evitar erros de rede ("Network Error") no Android
+api.interceptors.request.use(
+  (config) => {
+    const authHeader = api.defaults.headers.common["Authorization"];
+    if (authHeader) {
+      config.headers.Authorization = authHeader;
+    }
+    if (__DEV__) {
+      console.log(`[API Request] → ${config.method?.toUpperCase()} ${config.url}`);
+    }
+    return config;
+  },
+  (error) => {
+    if (__DEV__) {
+      console.error("[API Request Error]", error);
+    }
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
 // Controle de concorrência e fila para atualização de tokens expirados (Bônus)
 let isRefreshing = false;
@@ -44,8 +58,23 @@ const processQueue = (error: any, token: string | null = null) => {
 
 // Interceptor de Response: Trata erros globais (Ex: se retornar 401, tenta renovar via Refresh Token)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (__DEV__) {
+      console.log(`[API Response] ← ${response.status} ${response.config.url}`);
+    }
+    return response;
+  },
   async (error) => {
+    if (__DEV__) {
+      console.log("❌ [API Error Details]");
+      console.log("   - Message:", error.message);
+      console.log("   - Code:", error.code);
+      console.log("   - Status:", error.response?.status);
+      console.log("   - Response Data:", JSON.stringify(error.response?.data));
+      console.log("   - Request Method:", error.config?.method?.toUpperCase());
+      console.log("   - Request URL:", error.config?.url);
+      console.log("   - Request Headers:", JSON.stringify(error.config?.headers));
+    }
     const originalRequest = error.config;
     const status = error.response?.status;
 
@@ -138,6 +167,7 @@ api.interceptors.response.use(
       }
     }
 
-    return Promise.reject(new Error(mensagem));
+    error.message = mensagem;
+    return Promise.reject(error);
   }
 );
