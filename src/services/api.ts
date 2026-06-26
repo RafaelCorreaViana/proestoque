@@ -111,10 +111,18 @@ api.interceptors.response.use(
       }
     }
 
-    // Extrai a mensagem de erro do backend ou usa mensagem genérica
-    const mensagem =
-      error.response?.data?.erro ??
-      (error.code === "ECONNABORTED" ? "Tempo de conexão esgotado" : "Erro de conexão");
+    // Extrai a mensagem de erro do backend ou usa mensagem genérica detalhada
+    let mensagem = error.response?.data?.erro;
+    if (!mensagem) {
+      if (error.code === "ECONNABORTED") {
+        mensagem = "Tempo de conexão esgotado";
+      } else if (error.response) {
+        const serverMsg = error.response.data?.message || error.response.data || error.response.statusText || "";
+        mensagem = `Erro no servidor (${error.response.status}): ${typeof serverMsg === 'string' ? serverMsg.substring(0, 100) : JSON.stringify(serverMsg).substring(0, 100)}`;
+      } else {
+        mensagem = `Erro de conexão: ${error.message}`;
+      }
+    }
 
     return Promise.reject(new Error(mensagem));
   }
