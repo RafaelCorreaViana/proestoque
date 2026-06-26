@@ -8,15 +8,19 @@ import { theme } from '../../src/constants/theme';
 import { useAuth } from '../../src/contexts/AuthContext';
 
 export default function Login() {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
       await login(email, senha);
     } catch (error: any) {
       Alert.alert('Erro de Login', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,7 +65,7 @@ export default function Login() {
               title="Entrar" 
               onPress={handleLogin} 
               fullWidth 
-              loading={isLoading}
+              loading={loading}
               style={styles.loginButton} 
             />
 

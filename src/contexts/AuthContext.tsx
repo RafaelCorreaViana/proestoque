@@ -71,7 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, senha: string) => {
-    setIsLoading(true);
     try {
       if (!email || !senha) throw new Error("Preencha todos os campos");
 
@@ -89,13 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       const mensagem = error.response?.data?.erro ?? "E-mail ou senha inválidos";
       throw new Error(mensagem);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
   const registrar = useCallback(async (nome: string, email: string, senha: string) => {
-    setIsLoading(true);
     try {
       if (!nome || !email || !senha) throw new Error("Preencha todos os campos");
 
@@ -113,13 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       const mensagem = error.response?.data?.erro ?? "Erro ao criar conta";
       throw new Error(mensagem);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
   const logout = useCallback(async () => {
-    setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 300));
       await AsyncStorage.multiRemove([
@@ -130,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(null);
       setUser(null);
     } finally {
-      setIsLoading(false);
+      // Nothing needed here
     }
   }, []);
 
