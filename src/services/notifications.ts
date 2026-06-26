@@ -22,70 +22,86 @@ export async function solicitarPermissaoNotificacoes(): Promise<boolean> {
     return false;
   }
 
-  const { status: statusAtual } = await Notifications.getPermissionsAsync();
+  try {
+    const { status: statusAtual } = await Notifications.getPermissionsAsync();
+    if (statusAtual === "granted") return true;
 
-  if (statusAtual === "granted") return true;
-
-  const { status } = await Notifications.requestPermissionsAsync();
-  return status === "granted";
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === "granted";
+  } catch (error) {
+    console.warn("Erro ao obter permissões de notificação:", error);
+    return false;
+  }
 }
 
 // ── Notificação imediata ────────────────────────────────────
 export async function notificarEstoqueCritico(produtos: Array<{ nome: string; quantidade: number; quantidadeMinima: number }>) {
-  const temPermissao = await solicitarPermissaoNotificacoes();
-  if (!temPermissao) return;
+  try {
+    const temPermissao = await solicitarPermissaoNotificacoes();
+    if (!temPermissao) return;
 
-  if (produtos.length === 0) return;
+    if (produtos.length === 0) return;
 
-  // Uma notificação por produto crítico (máx 3 para não spam)
-  const paraNotificar = produtos.slice(0, 3);
+    // Uma notificação por produto crítico (máx 3 para não spam)
+    const paraNotificar = produtos.slice(0, 3);
 
-  for (const produto of paraNotificar) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "⚠️ Estoque crítico",
-        body: `${produto.nome}: ${produto.quantidade}/${produto.quantidadeMinima} (abaixo do mínimo)`,
-        data: { produtoNome: produto.nome }, // Dados extras acessíveis ao tocar
-        // Badge: número de alertas no ícone do app
-        badge: produtos.length,
-      },
-      // trigger: null = dispara IMEDIATAMENTE
-      trigger: null,
-    });
-  }
+    for (const produto of paraNotificar) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "⚠️ Estoque crítico",
+          body: `${produto.nome}: ${produto.quantidade}/${produto.quantidadeMinima} (abaixo do mínimo)`,
+          data: { produtoNome: produto.nome }, // Dados extras acessíveis ao tocar
+          // Badge: número de alertas no ícone do app
+          badge: produtos.length,
+        },
+        // trigger: null = dispara IMEDIATAMENTE
+        trigger: null,
+      });
+    }
 
-  // Se houver mais de 3, envia uma notificação de resumo
-  if (produtos.length > 3) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "⚠️ Mais alertas de estoque",
-        body: `+${produtos.length - 3} produtos com estoque crítico. Verifique o ProEstoque.`,
-        badge: produtos.length,
-      },
-      trigger: null,
-    });
+    // Se houver mais de 3, envia uma notificação de resumo
+    if (produtos.length > 3) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "⚠️ Mais alertas de estoque",
+          body: `+${produtos.length - 3} produtos com estoque crítico. Verifique o ProEstoque.`,
+          badge: produtos.length,
+        },
+        trigger: null,
+      });
+    }
+  } catch (error) {
+    console.warn("Erro ao enviar notificação de estoque crítico:", error);
   }
 }
 
 // ── Notificação agendada (checagem diária) ──────────────────
 export async function agendarVerificacaoDiaria() {
-  // Cancela agendamentos anteriores para evitar duplicatas
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  try {
+    // Cancela agendamentos anteriores para evitar duplicatas
+    await Notifications.cancelAllScheduledNotificationsAsync();
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "📦 ProEstoque",
-      body: "Verifique o estoque de hoje. Toque para abrir.",
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 8,      // 8h da manhã
-      minute: 0,
-    },
-  });
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "📦 ProEstoque",
+        body: "Verifique o estoque de hoje. Toque para abrir.",
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: 8,      // 8h da manhã
+        minute: 0,
+      },
+    });
+  } catch (error) {
+    console.warn("Erro ao agendar verificação diária:", error);
+  }
 }
 
 // ── Limpar badge ao abrir o app ─────────────────────────────
 export async function limparBadge() {
-  await Notifications.setBadgeCountAsync(0);
+  try {
+    await Notifications.setBadgeCountAsync(0);
+  } catch (error) {
+    console.warn("Erro ao limpar badge de notificações:", error);
+  }
 }
